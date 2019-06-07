@@ -1,9 +1,11 @@
 import configparser
 from datetime import datetime
 import json
+import glob
 import os
 import requests
 from csv import writer
+from googledrive import GoogleDrive
 
 
 config = configparser.ConfigParser()
@@ -12,20 +14,24 @@ config.read('/home/pi/private/config.ini')
 
 main_api_key = config['DEFAULT']['MAIN_API_KEY']
 twitter_api_key = config['DEFAULT']['TWITTER_API_KEY']
+credentials_file = config['DEFAULT']['CREDENTIALS_FILE']
 
 update_url = 'https://api.thingspeak.com/update?api_key='
 tweet_url = 'https://api.thingspeak.com/apps/thingtweet/1/statuses/update'
 
+LOG_FOLDER = '/home/pi/logs/'
+PHOTO_FOLDER = '/home/pi/captured/'
+
 
 def log(data):
-    with open('/home/pi/logs/sensor_logs_' + get_month() + '.csv', 'a+') as f:
+    with open(LOG_FOLDER + 'sensor_logs_' + get_month() + '.csv', 'a+') as f:
         csv_writer = writer(f)
         csv_writer.writerow([get_now()] + data)
         f.close()
 
 
 def log_error(error):
-    with open('/home/pi/logs/error_logs.txt', 'a') as f:
+    with open(LOG_FOLDER + 'error_logs.txt', 'a') as f:
         f.write('{}: {}\n'.format(get_now(), str(error)))
         f.close()
     count_error(error)
@@ -35,12 +41,12 @@ def count_error(error):
     data = {}
     error_count = 0
     error_name = type(error).__name__
-    with open('/home/pi/logs/errors.json', 'r') as f:
+    with open(LOG_FOLDER + 'errors.json', 'r') as f:
         data = json.load(f)
         error_count = data.get(error_name, 0) + 1
         f.close()
 
-    with open('/home/pi/logs/errors.json', 'w') as f:
+    with open(LOG_FOLDER + 'errors.json', 'w') as f:
         data[error_name] = error_count
         json.dump(data, f, indent=4, sort_keys=True)
         f.close()
@@ -90,3 +96,15 @@ def get_avg(values, r=0):
 
 def get_max(values):
     return str(max(values))
+
+
+def get_captured_photos():
+    return glob.glob(PHOTO_FOLDER + '*.jpg')
+
+
+def upload_photos(filenames):
+    drive = GoogleDrive(credentials_file)
+    for filename in filenames:
+        fileid = drive.upload_image(filename)
+        drive.share_file_with_me(fileid)
+        os.remove(filename)
