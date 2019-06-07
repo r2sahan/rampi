@@ -210,7 +210,7 @@ class BME680Sensor:
         :param reg_addr: Register address.
         :param data: Data.
         """
-        self.bus.write_i2c_block_data(self.I2C_ADDRESS, reg_addr, [ data & 0xFF ])
+        self.bus.write_i2c_block_data(self.I2C_ADDRESS, reg_addr, [ int(data) & 0xFF ])
 
     def _read_register_1ubyte(self, reg_addr):
         """Reads data from the I2C device.

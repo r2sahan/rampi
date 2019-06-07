@@ -1,11 +1,19 @@
-import configparser
 from datetime import datetime
 import json
 import glob
 import os
 import requests
+import subprocess
+import sys
+from time import sleep
+# from _thread import start_new_thread
 from csv import writer
 from googledrive import GoogleDrive
+
+if sys.version_info[0] == 2:
+    import ConfigParser as configparser
+else:
+    import configparser
 
 
 config = configparser.ConfigParser()
@@ -21,6 +29,16 @@ tweet_url = 'https://api.thingspeak.com/apps/thingtweet/1/statuses/update'
 
 LOG_FOLDER = '/home/pi/logs/'
 PHOTO_FOLDER = '/home/pi/captured/'
+TIMELAPSE_FOLDER = '/home/pi/timelapse/'
+
+
+def safe_log(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            log_error(e)
+    return wrapper
 
 
 def log(data):
@@ -31,7 +49,7 @@ def log(data):
 
 
 def log_error(error):
-    with open(LOG_FOLDER + 'error_logs.txt', 'a') as f:
+    with open(LOG_FOLDER + 'error_logs' + get_day() + '.txt', 'a+') as f:
         f.write('{}: {}\n'.format(get_now(), str(error)))
         f.close()
     count_error(error)
@@ -43,46 +61,50 @@ def count_error(error):
     error_name = type(error).__name__
     with open(LOG_FOLDER + 'errors.json', 'r') as f:
         data = json.load(f)
-        error_count = data.get(error_name, 0) + 1
         f.close()
-
+    error_count = data.get(error_name, 0) + 1
+    data[error_name] = error_count
     with open(LOG_FOLDER + 'errors.json', 'w') as f:
-        data[error_name] = error_count
         json.dump(data, f, indent=4, sort_keys=True)
         f.close()
-    tweet(json.dumps(data))
 
 
+@safe_log
 def send(data):
     params = ''
     for i in range(len(data)):
         params += '&field' + str(i + 1) + '=' + str(data[i])
-    try:
-        response = requests.get(update_url + main_api_key + params, timeout=30)
-        if response.status_code != 200:
-            log_error(requests.exceptions.HTTPError(
-                'Request has been failed with status code: {}'.format(
-                    response.status_code)))
-    except Exception as e:
-        log_error(e)
+    response = requests.get(update_url + main_api_key + params, timeout=30)
+    if response.status_code != 200:
+        raise requests.exceptions.HTTPError(
+            'Request has been failed with status code: {}'.format(
+                response.status_code))
 
 
-def tweet(message):
-    data = json.dumps({'api_key': twitter_api_key, 'status': message})
-    try:
-        requests.post(tweet_url, data, timeout=30)
-    except Exception as e:
-        log_error(e)
+@safe_log
+def tweet():
+    with open(LOG_FOLDER + 'errors.json', 'r') as f:
+        errors = json.load(f)
+        f.close()
+    message = json.dumps(errors)
+    data = {'api_key': twitter_api_key, 'status': message}
+    requests.post(tweet_url, data, timeout=30)
 
 
 def get_now():
-    d = datetime.now()
-    return d.strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+
+def get_now2():
+    return datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
 
 def get_month():
-    d = datetime.now()
-    return d.strftime('%Y_%m')
+    return datetime.now().strftime('%Y_%m')
+
+
+def get_day():
+    return datetime.now().strftime('%Y_%m_%d')
 
 
 def get_cpu_temperature():
@@ -98,13 +120,54 @@ def get_max(values):
     return str(max(values))
 
 
-def get_captured_photos():
-    return glob.glob(PHOTO_FOLDER + '*.jpg')
+def get_sum(values):
+    return str(sum(values))
 
 
-def upload_photos(filenames):
+def get_captured_files(folder, extension):
+    return sorted(glob.glob('{}*.{}'.format(folder, extension)))
+
+
+@safe_log
+def merge_images(image_files):
+    # pip install Pillow
+    from PIL import Image
+    now = get_now2()
+    width = 640
+    height = 480
+    merge_image = Image.new('RGB', (width, len(image_files) * height))
+    y = 0
+    for filename in image_files:
+        merge_image.paste(Image.open(filename), (0, y))
+        os.remove(filename)
+        y += height
+    merge_image.save('{}{}.jpg'.format(PHOTO_FOLDER, now))
+
+
+def upload_files(captured_files):
     drive = GoogleDrive(credentials_file)
-    for filename in filenames:
+    for filename in captured_files:
         fileid = drive.upload_image(filename)
         drive.share_file_with_me(fileid)
         os.remove(filename)
+
+
+@safe_log
+def capture_photo():
+    cmd = 'fswebcam -d /dev/video{} -r 640x480 -S 2 --no-banner --no-info ' \
+        '--no-timestamp {}{}-{}.jpg'
+    now = get_now2()
+    subprocess.Popen(cmd.format('0', PHOTO_FOLDER, now, 'out').split())
+    subprocess.Popen(cmd.format('1', PHOTO_FOLDER, now, 'in').split())
+    sleep(5)
+    captured_photos = get_captured_files(PHOTO_FOLDER, 'jpg')
+    upload_files(captured_photos)
+
+
+def capture(motions):
+    if is_real_motion(motions):
+        capture_photo()
+
+
+def is_real_motion(motions):
+    return sum(motions) > 0
