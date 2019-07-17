@@ -32,15 +32,6 @@ PHOTO_FOLDER = '/home/pi/captured/'
 TIMELAPSE_FOLDER = '/home/pi/timelapse/'
 
 
-def safe_log(func):
-    def wrapper(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except Exception as e:
-            log_error(e)
-    return wrapper
-
-
 def log(data):
     with open(LOG_FOLDER + 'sensor_logs_' + get_month() + '.csv', 'a+') as f:
         csv_writer = writer(f)
@@ -53,6 +44,15 @@ def log_error(error):
         f.write('{}: {}\n'.format(get_now(), str(error)))
         f.close()
     count_error(error)
+
+
+def safe_log(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            log_error(e)
+    return wrapper
 
 
 def count_error(error):
