@@ -7,7 +7,8 @@ def upload_errors():
     error_files = helper.get_captured_files(helper.LOG_FOLDER + 'error_logs',
                                             'txt')
     helper.upload_files(error_files)
-    helper.tweet()
+    message = helper.get_error_json(is_dump=True)
+    helper.tweet(message)
 
 
 upload_errors()

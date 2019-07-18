@@ -39,9 +39,9 @@ def log(data):
         f.close()
 
 
-def log_error(error):
+def log_error(error, func_name):
     with open(LOG_FOLDER + 'error_logs' + get_day() + '.txt', 'a+') as f:
-        f.write('{}: {}\n'.format(get_now(), str(error)))
+        f.write('{}: ({}) {}\n'.format(get_now(), func_name, str(error)))
         f.close()
     count_error(error)
 
@@ -51,17 +51,22 @@ def safe_log(func):
         try:
             func(*args, **kwargs)
         except Exception as e:
-            log_error(e)
+            log_error(e, func.__name__)
     return wrapper
 
 
-def count_error(error):
+def get_error_json(is_dump=False):
     data = {}
-    error_count = 0
-    error_name = type(error).__name__
     with open(LOG_FOLDER + 'errors.json', 'r') as f:
         data = json.load(f)
         f.close()
+    return json.dump(data) if is_dump else data
+
+
+def count_error(error):
+    error_count = 0
+    error_name = type(error).__name__
+    data = get_error_json()
     error_count = data.get(error_name, 0) + 1
     data[error_name] = error_count
     with open(LOG_FOLDER + 'errors.json', 'w') as f:
@@ -82,11 +87,7 @@ def send(data):
 
 
 @safe_log
-def tweet():
-    with open(LOG_FOLDER + 'errors.json', 'r') as f:
-        errors = json.load(f)
-        f.close()
-    message = json.dumps(errors)
+def tweet(message):
     data = {'api_key': twitter_api_key, 'status': message}
     requests.post(tweet_url, data, timeout=30)
 
