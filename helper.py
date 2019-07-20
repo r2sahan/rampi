@@ -130,9 +130,10 @@ def get_captured_files(folder, extension):
 
 
 @safe_log
-def merge_images(image_files):
+def merge_photos():
     # pip install Pillow
     from PIL import Image
+    image_files = get_captured_files(PHOTO_FOLDER, 'jpg')
     now = get_now2()
     width = 640
     height = 480
@@ -153,21 +154,28 @@ def upload_files(captured_files):
         os.remove(filename)
 
 
-@safe_log
-def capture_photo():
-    cmd = 'fswebcam -d /dev/video{} -r 640x480 -S 2 --no-banner --no-info ' \
-        '--no-timestamp {}{}-{}.jpg'
-    now = get_now2()
-    subprocess.Popen(cmd.format('0', PHOTO_FOLDER, now, 'out').split())
-    subprocess.Popen(cmd.format('1', PHOTO_FOLDER, now, 'in').split())
-    sleep(5)
+def upload_photos():
     captured_photos = get_captured_files(PHOTO_FOLDER, 'jpg')
     upload_files(captured_photos)
 
 
+@safe_log
+def capture_photos():
+    cmd = 'fswebcam -d /dev/video{} -r 640x480 -S 2 --no-banner --no-info ' \
+        '--no-timestamp {}{}-{}.jpg'
+    now = get_now2()
+    subprocess.Popen(cmd.format('0', PHOTO_FOLDER, now, 'out').split())
+    sleep(0.5)
+    subprocess.Popen(cmd.format('1', PHOTO_FOLDER, now, 'in').split())
+
+
 def capture(motions):
     if is_real_motion(motions):
-        capture_photo()
+        capture_photos()
+        sleep(4.5)
+        merge_photos()
+        sleep(0.5)
+        upload_photos()
 
 
 def is_real_motion(motions):
