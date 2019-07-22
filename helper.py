@@ -60,7 +60,7 @@ def get_error_json(is_dump=False):
     with open(LOG_FOLDER + 'errors.json', 'r') as f:
         data = json.load(f)
         f.close()
-    return json.dump(data) if is_dump else data
+    return json.dumps(data) if is_dump else data
 
 
 def count_error(error):
