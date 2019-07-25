@@ -63,6 +63,12 @@ def get_error_json(is_dump=False):
     return json.dumps(data) if is_dump else data
 
 
+def reset_error_json():
+    with open(LOG_FOLDER + 'errors.json', 'w') as f:
+        json.dump({}, f, indent=4, sort_keys=True)
+        f.close()
+
+
 def count_error(error):
     error_count = 0
     error_name = type(error).__name__
@@ -176,6 +182,8 @@ def capture(motions):
         merge_photos()
         sleep(0.5)
         upload_photos()
+    if datetime.now().strftime('%Y-%m-%d-%H') == '2019-07-25-23':
+        reset_error_json()
 
 
 def is_real_motion(motions):
