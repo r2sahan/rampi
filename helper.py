@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import Image
 import glob
 import os
 import requests
@@ -137,8 +138,6 @@ def get_captured_files(folder, extension):
 
 @safe_log
 def merge_photos():
-    # pip install Pillow
-    from PIL import Image
     image_files = get_captured_files(PHOTO_FOLDER, 'jpg')
     now = get_now2()
     width = 640
@@ -182,8 +181,6 @@ def capture(motions):
         merge_photos()
         sleep(0.5)
         upload_photos()
-    if datetime.now().strftime('%Y-%m-%d-%H') == '2019-07-25-23':
-        reset_error_json()
 
 
 def is_real_motion(motions):
