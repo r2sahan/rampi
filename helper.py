@@ -1,13 +1,12 @@
 from datetime import datetime
 import json
-import Image
 import glob
 import os
 import requests
 import subprocess
 import sys
 from time import sleep
-# from _thread import start_new_thread
+from PIL import Image
 from csv import writer
 from googledrive import GoogleDrive
 
@@ -33,17 +32,12 @@ PHOTO_FOLDER = '/home/pi/captured/'
 TIMELAPSE_FOLDER = '/home/pi/timelapse/'
 
 
-def log(data):
-    with open(LOG_FOLDER + 'sensor_logs_' + get_month() + '.csv', 'a+') as f:
-        csv_writer = writer(f)
-        csv_writer.writerow([get_now()] + data)
-        f.close()
-
-
 def log_error(error, func_name):
     with open(LOG_FOLDER + 'error_logs' + get_day() + '.txt', 'a+') as f:
-        f.write('{}: ({}) {}\n'.format(get_now(), func_name, str(error)))
+        error_message = '{}: ({}) {}'.format(get_now(), func_name, str(error))
+        f.write(error_message + '\n')
         f.close()
+        tweet(error_message)
     count_error(error)
 
 
@@ -56,6 +50,15 @@ def safe_log(func):
     return wrapper
 
 
+@safe_log
+def log(data):
+    with open(LOG_FOLDER + 'sensor_logs_' + get_month() + '.csv', 'a+') as f:
+        csv_writer = writer(f)
+        csv_writer.writerow([get_now()] + data)
+        f.close()
+
+
+@safe_log
 def get_error_json(is_dump=False):
     data = {}
     with open(LOG_FOLDER + 'errors.json', 'r') as f:
@@ -64,12 +67,14 @@ def get_error_json(is_dump=False):
     return json.dumps(data) if is_dump else data
 
 
+@safe_log
 def reset_error_json():
     with open(LOG_FOLDER + 'errors.json', 'w') as f:
         json.dump({}, f, indent=4, sort_keys=True)
         f.close()
 
 
+@safe_log
 def count_error(error):
     error_count = 0
     error_name = type(error).__name__
@@ -137,20 +142,28 @@ def get_captured_files(folder, extension):
 
 
 @safe_log
+def paste_image(target_image, filename, y):
+    target_image.paste(Image.open(filename), (0, y))
+
+
+@safe_log
 def merge_photos():
     image_files = get_captured_files(PHOTO_FOLDER, 'jpg')
+    if not image_files:
+        return
     now = get_now2()
     width = 640
     height = 480
-    merge_image = Image.new('RGB', (width, len(image_files) * height))
+    target_image = Image.new('RGB', (width, len(image_files) * height))
     y = 0
     for filename in image_files:
-        merge_image.paste(Image.open(filename), (0, y))
+        paste_image(target_image, filename, y)
         os.remove(filename)
         y += height
-    merge_image.save('{}{}.jpg'.format(PHOTO_FOLDER, now))
+    target_image.save('{}{}.jpg'.format(PHOTO_FOLDER, now))
 
 
+@safe_log
 def upload_files(captured_files):
     drive = GoogleDrive(credentials_file)
     for filename in captured_files:
@@ -159,9 +172,11 @@ def upload_files(captured_files):
         os.remove(filename)
 
 
+@safe_log
 def upload_photos():
     captured_photos = get_captured_files(PHOTO_FOLDER, 'jpg')
-    upload_files(captured_photos)
+    if captured_photos:
+        upload_files(captured_photos)
 
 
 @safe_log
