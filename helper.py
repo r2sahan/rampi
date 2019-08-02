@@ -37,7 +37,7 @@ def log_error(error, func_name):
         error_message = '{}: ({}) {}'.format(get_now(), func_name, str(error))
         f.write(error_message + '\n')
         f.close()
-        tweet(error_message)
+        # tweet(error_message)
     count_error(error)
 
 
