@@ -50,7 +50,6 @@ def safe_log(func):
     return wrapper
 
 
-@safe_log
 def log(data):
     with open(LOG_FOLDER + 'sensor_logs_' + get_month() + '.csv', 'a+') as f:
         csv_writer = writer(f)
@@ -58,7 +57,6 @@ def log(data):
         f.close()
 
 
-@safe_log
 def get_error_json(is_dump=False):
     data = {}
     with open(LOG_FOLDER + 'errors.json', 'r') as f:
@@ -67,14 +65,12 @@ def get_error_json(is_dump=False):
     return json.dumps(data) if is_dump else data
 
 
-@safe_log
 def reset_error_json():
     with open(LOG_FOLDER + 'errors.json', 'w') as f:
         json.dump({}, f, indent=4, sort_keys=True)
         f.close()
 
 
-@safe_log
 def count_error(error):
     error_count = 0
     error_name = type(error).__name__
