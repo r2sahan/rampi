@@ -10,6 +10,7 @@ def upload_errors():
         helper.upload_files(error_files)
         message = helper.get_error_json(is_dump=True)
         helper.tweet(message)
+        helper.reset_error_json()
 
 
 upload_errors()
