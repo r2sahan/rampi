@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import glob
 import os
@@ -166,6 +166,36 @@ def upload_files(captured_files):
         fileid = drive.upload_image(filename)
         drive.share_file_with_me(fileid)
         os.remove(filename)
+
+
+@safe_log
+def upload_error_files():
+    error_files = get_captured_files(LOG_FOLDER + 'error_logs', 'txt')
+    if error_files:
+        upload_files(error_files)
+        message = get_error_json(is_dump=True)
+        tweet(message)
+        reset_error_json()
+
+
+@safe_log
+def delete_old_files():
+    chunk_size = 1000  # google drive api limits 1000 queries / 100 seconds
+    sleep_time = 100
+    days = 10
+    drive = GoogleDrive(credentials_file)
+    last_day = datetime.now() - timedelta(days=days)
+    query = "createdTime < '{}'".format(last_day.strftime('%Y-%m-%d'))
+    result = drive.query(query)
+    file_ids = list(result.keys())
+    if file_ids:
+        chunks = [file_ids[x:x + chunk_size]
+                  for x in range(0, len(file_ids), chunk_size)]
+        for chunk in chunks:
+            drive.delete_files(chunk)
+            sleep(sleep_time)
+        drive.empty_trash()
+        tweet('{} files were deleted!'.format(len(file_ids)))
 
 
 @safe_log

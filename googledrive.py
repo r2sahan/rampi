@@ -130,6 +130,22 @@ class GoogleDrive:
         else:
             return True
 
+    def delete_files(self, fileids):
+        def _delete_callback(request_id, response, exception):
+            if exception is not None:
+                self.logger.error(exception)
+            else:
+                self.logger.info('{} files were deleted: {}'.format(
+                    len(fileids), response))
+
+        batch = self.service.new_batch_http_request(callback=_delete_callback)
+        for fileid in fileids:
+            batch.add(self.service.files().delete(fileId=fileid))
+        batch.execute()
+
+    def empty_trash(self):
+        self.service.files().emptyTrash().execute()
+
     def search_files(self, mime_type=None):
         """
         Search files with given query, return name and id

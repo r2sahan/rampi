@@ -2,15 +2,5 @@
 import helper
 
 
-@helper.safe_log
-def upload_errors():
-    error_files = helper.get_captured_files(helper.LOG_FOLDER + 'error_logs',
-                                            'txt')
-    if error_files:
-        helper.upload_files(error_files)
-        message = helper.get_error_json(is_dump=True)
-        helper.tweet(message)
-        helper.reset_error_json()
-
-
-upload_errors()
+helper.upload_error_files()
+helper.delete_old_files()
