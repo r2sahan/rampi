@@ -207,20 +207,18 @@ def upload_photos():
 
 @safe_log
 def capture_photos():
-    cmd = 'fswebcam -d /dev/video{} -r 640x480 -S 2 --no-banner --no-info ' \
-        '--no-timestamp {}{}-{}.jpg'
+    cmd = 'fswebcam -d /dev/video{} -r 640x480 --no-banner {}{}-{}.jpg'
     now = get_now2()
     subprocess.Popen(cmd.format('0', PHOTO_FOLDER, now, 'out').split())
-    sleep(0.5)
+    sleep(1)
     subprocess.Popen(cmd.format('1', PHOTO_FOLDER, now, 'in').split())
 
 
 def capture(motions):
     if is_real_motion(motions):
         capture_photos()
-        sleep(4.5)
+        sleep(4)
         merge_photos()
-        sleep(0.5)
         upload_photos()
 
 
