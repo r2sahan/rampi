@@ -215,7 +215,7 @@ def capture_photos():
 
 
 def capture(motions):
-    if is_real_motion(motions):
+    if is_real_motion(motions) or is_capture_time():
         capture_photos()
         sleep(4)
         merge_photos()
@@ -224,3 +224,12 @@ def capture(motions):
 
 def is_real_motion(motions):
     return sum(motions) > 0
+
+
+def is_capture_time():
+    now = datetime.now()
+    hour = now.hour
+    minute = now.minute
+    if hour in [6, 12, 18] and minute in [1, 2, 3, 4, 5]:
+        return True
+    return False
