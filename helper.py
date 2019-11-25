@@ -195,7 +195,7 @@ def delete_old_files():
             drive.delete_files(chunk)
             sleep(sleep_time)
         drive.empty_trash()
-        tweet('{} files were deleted!'.format(len(file_ids)))
+        # tweet('{} files were deleted!'.format(len(file_ids)))
 
 
 @safe_log
@@ -230,6 +230,6 @@ def is_capture_time():
     now = datetime.now()
     hour = now.hour
     minute = now.minute
-    if hour in [6, 12, 18] and minute in [1, 2, 3, 4, 5]:
+    if hour in [3, 8, 12, 17] and minute in [0, 1, 2]:
         return True
     return False
