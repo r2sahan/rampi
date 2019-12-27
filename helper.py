@@ -230,6 +230,6 @@ def is_capture_time():
     now = datetime.now()
     hour = now.hour
     minute = now.minute
-    if hour in [3, 8, 12, 17] and minute in [0, 1, 2]:
+    if hour in range(24) and minute in [0, 1]:
         return True
     return False
