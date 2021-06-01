@@ -16,7 +16,7 @@ requests==2.20.0
 RPi.GPIO==0.6.4
 SecretStorage==2.3.1
 six==1.10.0
-urllib3==1.24.1
+urllib3==1.26.5
 google-api-python-client==1.7.9
 google-auth==1.6.3
 google-auth-httplib2==0.0.3
